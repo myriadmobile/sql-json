@@ -7,6 +7,9 @@ class Type {
 }
 exports.Type = Type;
 class DataType {
+    constructor() {
+        this.values = [];
+    }
 }
 exports.DataType = DataType;
 //# sourceMappingURL=translator.js.map

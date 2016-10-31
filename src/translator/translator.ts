@@ -10,7 +10,8 @@ export class Type {
 
 export class DataType {
     name: string
-    size: string
+    size: number
+    values: string[] = []
     decimals: number
     binary: boolean
     characterSet: string

@@ -1,10 +1,10 @@
 {
-  "globalDependencies": {
-    "commander": "registry:dt/commander#2.3.0+20160317120654",
-    "eyes": "registry:dt/eyes#0.1.8+20160316155526",
-    "node": "registry:dt/node#6.0.0+20161019125345"
-  },
-  "dependencies": {
-    "sif": "github:berdon/sif/index.d.ts"
-  }
+    "globalDependencies": {
+        "commander": "registry:dt/commander#2.3.0+20160317120654",
+        "eyes": "registry:dt/eyes#0.1.8+20160316155526",
+        "node": "registry:dt/node#6.0.0+20161019125345"
+    },
+    "dependencies": {
+        "sif": "github:berdon/sif/index.d.ts"
+    }
 }

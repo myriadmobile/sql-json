@@ -15,7 +15,7 @@ export default class MySqlTranslator implements Translator {
     private emitter: EventEmitter = new EventEmitter()
 
     constructor() {
-        this.tokenizer = Tokenizer.fromJson(tokens)
+        this.tokenizer = Tokenizer.fromJson(tokens.reverse())
         this.grammar = new MySqlGrammar(this.emitter)
         this.lexer = new Lexer("START", this.grammar, this.tokenizer)
     }
@@ -35,14 +35,34 @@ export default class MySqlTranslator implements Translator {
 
     private translateMySqlType(type: DataType) {
         switch(type.name.toLowerCase()) {
+            case "bit":
             case "tinyint":
             case "smallint":
             case "mediumint":
-            case "integer":
+            case "int":
             case "bigint":
+            case "real":
+            case "double":
+            case "float":
+            case "decimal":
+            case "numeric":
+            case "timestamp":
                 return "number"
+
+            case "date":
+            case "time":
+            case "year":
+            case "char":
             case "varchar":
+            case "varchar":
+            case "binary":
+            case "varbinary":
+            case "json":
                 return "string"
+            case "enum":
+                return "enum"
+            case "set":
+                return "array"
         }
     }
 
@@ -53,10 +73,20 @@ export default class MySqlTranslator implements Translator {
         this.on('table:start', (name) => tables[name] = {
             title: name, type: "object", properties: []
         })
-        this.on('column', (column: Type, table: Type) => tables[table.title].properties.push({
-                title: column.title,
-                type: this.translateMySqlType(column.type)
-            })
+        this.on('column', (column: Type, table: Type) => {
+                let type: any = {
+                    title: column.title,
+                    type: this.translateMySqlType(column.type)
+                }
+
+                if (column.type.name != 'ENUM') {
+                    type.type = this.translateMySqlType(column.type)
+                } else {
+                    type.enum = column.type.values
+                }
+
+                tables[table.title].properties.push(type)
+            }
         )
         this.lexer.parse(filename)
         return tables

@@ -6,7 +6,7 @@ const tokens_1 = require('./tokens');
 class MySqlTranslator {
     constructor() {
         this.emitter = new events_1.EventEmitter();
-        this.tokenizer = sif_1.Tokenizer.fromJson(tokens_1.tokens);
+        this.tokenizer = sif_1.Tokenizer.fromJson(tokens_1.tokens.reverse());
         this.grammar = new grammar_1.default(this.emitter);
         this.lexer = new sif_1.Lexer("START", this.grammar, this.tokenizer);
     }
@@ -24,14 +24,33 @@ class MySqlTranslator {
     }
     translateMySqlType(type) {
         switch (type.name.toLowerCase()) {
+            case "bit":
             case "tinyint":
             case "smallint":
             case "mediumint":
-            case "integer":
+            case "int":
             case "bigint":
+            case "real":
+            case "double":
+            case "float":
+            case "decimal":
+            case "numeric":
+            case "timestamp":
                 return "number";
+            case "date":
+            case "time":
+            case "year":
+            case "char":
             case "varchar":
+            case "varchar":
+            case "binary":
+            case "varbinary":
+            case "json":
                 return "string";
+            case "enum":
+                return "enum";
+            case "set":
+                return "array";
         }
     }
     parseFile(filename) {
@@ -41,10 +60,19 @@ class MySqlTranslator {
         this.on('table:start', (name) => tables[name] = {
             title: name, type: "object", properties: []
         });
-        this.on('column', (column, table) => tables[table.title].properties.push({
-            title: column.title,
-            type: this.translateMySqlType(column.type)
-        }));
+        this.on('column', (column, table) => {
+            let type = {
+                title: column.title,
+                type: this.translateMySqlType(column.type)
+            };
+            if (column.type.name != 'ENUM') {
+                type.type = this.translateMySqlType(column.type);
+            }
+            else {
+                type.enum = column.type.values;
+            }
+            tables[table.title].properties.push(type);
+        });
         this.lexer.parse(filename);
         return tables;
     }
