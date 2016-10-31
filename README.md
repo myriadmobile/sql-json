@@ -9,3 +9,14 @@ Provides utilities for converting between SQL schema and [JSON schema](http://js
 ## TODO
 * Complete MySQL CREATE parsing
 * Complete MySQL -> JSON Schema translation
+
+## Development
+### Setup
+```bash
+# Yarn has issues with global symlinking binaries
+npm install -s -g typescript@next
+npm install -s -g typings@next
+yarn install
+typings install
+tsc -p .
+```
