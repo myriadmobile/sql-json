@@ -1,4 +1,7 @@
 import { translateMySql } from './'
 import * as eyes from 'eyes'
 
-eyes.inspect(translateMySql('./sample/test.mysql'))
+let tables = translateMySql('./sample/test.mysql')
+for (let table in tables) {
+    eyes.inspect(tables[table])
+}

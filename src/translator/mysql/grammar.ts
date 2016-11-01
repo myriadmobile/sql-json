@@ -47,6 +47,22 @@ export default class MySqlGrammar extends Grammar {
         }
     }
 
+    private get storeDefault() {
+        let self = this
+
+        return function(value) {
+            self.currentType.type.default = value
+        }
+    }
+
+    private storeNullable(nullable: boolean) {
+        let self = this
+
+        return function(value) {
+            self.currentType.type.nullable = nullable
+        }
+    }
+
     private get tableName() {
         let self = this
 
@@ -86,6 +102,14 @@ export default class MySqlGrammar extends Grammar {
         }
     }
 
+    private get pushStringValueUp() {
+        let self = this
+
+        return function(value, token, phrase, word, isFinal, context) {
+            context.parent.value = value.slice(1, -1)
+        }
+    }
+
     private initialize() {
         this.add("START",
             ["STATEMENT_LIST"])
@@ -113,11 +137,11 @@ export default class MySqlGrammar extends Grammar {
             ["LAMBDA"])
 
         this.add("TABLE_NAME",
-            ["TICK", "IDENTIFIER", this.pushValueUp, "TICK"],
-            ["IDENTIFIER", this.pushValueUp, ])
+            ["TICK_STRING", this.pushStringValueUp],
+            ["IDENTIFIER", this.pushValueUp])
 
         this.add("COLUMN_NAME",
-            ["TICK", "IDENTIFIER", this.pushValueUp, "TICK"],
+            ["TICK_STRING", this.pushStringValueUp],
             ["IDENTIFIER", this.pushValueUp])
 
         this.add("CREATE_STATEMENT", [
@@ -126,7 +150,7 @@ export default class MySqlGrammar extends Grammar {
                 this.pushType()
                 this.tableName(value)
                 this.emitter.emit('table:start', this.currentType.title)
-            }, "CREATE_DEFINITION_LIST", "TABLE_OPTIONS", "PARTITION_OPTIONS", (value) => {
+            }, "CREATE_DEFINITION_LIST", "TABLE_OPTIONS_LIST", "PARTITION_OPTIONS_LIST", (value) => {
                 this.emitter.emit('table:end', this.currentType.title)
                 this.emitter.emit('table', this.currentType)
             }
@@ -142,11 +166,17 @@ export default class MySqlGrammar extends Grammar {
 
         this.add("CREATE_DEFINITION",
             ["COLUMN_NAME", this.columnName, "COLUMN_DEFINITION", this.createColumn],
-            ["CONSTRAINT", "CONSTRAINT_OPTIONS"],
-            ["INDEX_OR_KEY", "INDEX_NAME", "INDEX_TYPE", "INDEX_COLUMN_LIST", "INDEX_OPTION"])
+            ["INDEX_OR_KEY", "INDEX_NAME", "INDEX_TYPE", "COLUMN_LIST", "INDEX_OPTION"],
+            ["CONSTRAINT", "CONSTRAINT_OPTIONS"])
         
         this.add("INDEX_NAME",
             ["IDENTIFIER"],
+            ["TICK_STRING"],
+            ["LAMBDA"])
+        
+        this.add("CONSTRAINT_NAME",
+            ["IDENTIFIER"],
+            ["TICK_STRING"],
             ["LAMBDA"])
 
         this.add("INDEX_OR_KEY",
@@ -154,17 +184,17 @@ export default class MySqlGrammar extends Grammar {
             ["RW_KEY"])
         
         this.add("CONSTRAINT",
-            ["RW_CONSTRAINT", "STRING"],
+            ["RW_CONSTRAINT", "CONSTRAINT_NAME"],
             ["RW_CONSTRAINT"],
             ["LAMBDA"])
         
         this.add("CONSTRAINT_OPTIONS",
-            ["RW_PRIMARY", "RW_KEY", "INDEX_TYPE", "INDEX_COLUMN_LIST", "INDEX_OPTION"],
+            ["RW_PRIMARY", "RW_KEY", "INDEX_TYPE", "COLUMN_LIST", "INDEX_OPTION"],
             ["RW_UNIQUE", "UNIQUE_CONSTRAINT_OPTIONS"],
-            ["RW_FOREIGN", "RW_KEY", "INDEX_NAME", "INDEX_COLUMN_LIST", "REFERENCE_DEFINITION"])
+            ["RW_FOREIGN", "RW_KEY", "INDEX_NAME", "COLUMN_LIST", "REFERENCE_DEFINITION"])
         
         this.add("REFERENCE_DEFINITION",
-            ["RW_REFERENCES", "TABLE_NAME", "INDEX_COLUMN_LIST", "MATCH_TYPE", "ON_DELETE", "ON_UPDATE"])
+            ["RW_REFERENCES", "TABLE_NAME", "COLUMN_LIST", "MATCH_TYPE", "ON_DELETE", "ON_UPDATE"])
         
         this.add("MATCH_TYPE",
             ["RW_MATCH", "FULL"],
@@ -187,20 +217,18 @@ export default class MySqlGrammar extends Grammar {
             ["RW_NO", "RW_ACTION"])
             
         this.add("UNIQUE_CONSTRAINT_OPTIONS",
-            ["RW_INDEX", "LEFT_PARAN", "IDENTIFER", "RIGHT_PARAN", "INDEX_TYPE", "INDEX_COLUMN_LIST", "INDEX_OPTION"],
-            ["RW_KEY", "INDEX_NAME", "INDEX_TYPE", "INDEX_COLUMN_LIST", "INDEX_OPTION"])
+            ["RW_INDEX", "LEFT_PARAN", "IDENTIFIER", "RIGHT_PARAN", "INDEX_TYPE", "COLUMN_LIST", "INDEX_OPTION"],
+            ["RW_KEY", "INDEX_NAME", "INDEX_TYPE", "COLUMN_LIST", "INDEX_OPTION"])
 
         this.add("INDEX_TYPE",
             ["RW_USING", "RW_BTREE"],
             ["RW_USING", "RW_HASH"],
             ["LAMBDA"])
         
-        this.add("INDEX_COLUMN_LIST",
-            ["LEFT_PARAN", "IDENTIFIER", "LENGTH", "DIRECTION", "INDEX_COLUMN_TAIL"],
-            ["LEFT_PARAN", "TICK", "IDENTIFIER", "LENGTH", "DIRECTION", "TICK", "INDEX_COLUMN_TAIL"])
-        this.add("INDEX_COLUMN_TAIL",
-            ["COMMA", "IDENTIFIER", "LENGTH", "DIRECTION", "INDEX_COLUMN_TAIL"],
-            ["COMMA", "TICK", "IDENTIFIER", "LENGTH", "DIRECTION", "TICK", "INDEX_COLUMN_TAIL"],
+        this.add("COLUMN_LIST",
+            ["LEFT_PARAN", "COLUMN_NAME", "LENGTH", "DIRECTION", "COLUMN_TAIL"])
+        this.add("COLUMN_TAIL",
+            ["COMMA", "COLUMN_NAME", "LENGTH", "DIRECTION", "COLUMN_TAIL"],
             ["RIGHT_PARAN"])
         
         this.add("DIRECTION",
@@ -209,14 +237,43 @@ export default class MySqlGrammar extends Grammar {
             ["LAMBDA"])
         
         this.add("INDEX_OPTION",
-            ["KW_KEY_BLOCK_SIZE", "EQUALS", "INTEGER"],
+            ["RW_KEY_BLOCK_SIZE", "EQUALS", "INTEGER"],
             ["INDEX_TYPE"],
             ["RW_WITH", "RW_PARSER", "IDENTIFIER"],
+            ["COMMENT"],
+            ["LAMBDA"])
+        
+        this.add("COMMENT",
             ["RW_COMMENT", "STRING"],
             ["LAMBDA"])
 
         this.add("COLUMN_DEFINITION",
-            ["DATA_TYPE", "NULL_TYPE", "DEFAULT_VALUE"])
+            ["DATA_TYPE", "NULL_TYPE", "DEFAULT_VALUE", "AUTO_INCREMENT", "UNIQUE_PRIMARY_KEY", "COMMENT", "COLUMN_FORMAT", "OPTIONAL_REFERENCE_DEFINITION"])
+        
+        this.add("OPTIONAL_REFERENCE_DEFINITION",
+            ["REFERENCE_DEFINITION"],
+            ["LAMBDA"])
+        
+        this.add("COLUMN_FORMAT",
+            ["RW_COLUMN_FORMAT", "COLUMN_FORMAT_TYPE"],
+            ["LAMBDA"])
+        
+        this.add("COLUMN_FORMAT_TYPE",
+            ["RW_FIXED"],
+            ["RW_DYNAMIC"],
+            ["RW_DEFAULT"],
+            ["LAMBDA"])
+
+        this.add("AUTO_INCREMENT",
+            ["RW_AUTO_INCREMENT"],
+            ["LAMBDA"])
+        
+        this.add("UNIQUE_PRIMARY_KEY",
+            ["RW_UNIQUE", "RW_KEY"],
+            ["RW_UNIQUE"],
+            ["RW_PRIMARY", "RW_KEY"],
+            ["RW_PRIMARY"],
+            ["LAMBDA"])
 
         this.add("DATA_TYPE",
             ["RW_BIT",      this.storeType, "LENGTH", "UNSIGNED", "ZEROFILL"], ["RW_BIT",       this.storeType],
@@ -229,7 +286,7 @@ export default class MySqlGrammar extends Grammar {
             ["RW_DECIMAL",  this.storeType, "LENGTH", "UNSIGNED", "ZEROFILL"], ["RW_DECIMAL",   this.storeType],
             ["RW_NUMERIC",  this.storeType, "LENGTH", "UNSIGNED", "ZEROFILL"], ["RW_NUMERIC",   this.storeType],
 
-            ["KW_DATE",     this.storeType],
+            ["RW_DATE",     this.storeType],
             ["RW_TIME",     this.storeType, "LENGTH"], ["RW_TIME",      this.storeType],
             ["RW_TIMESTAMP",this.storeType, "LENGTH"], ["RW_TIMESTAMP", this.storeType],
             ["RW_YEAR",     this.storeType, "LENGTH", "BINARY"],
@@ -243,7 +300,7 @@ export default class MySqlGrammar extends Grammar {
             ["TYPE_BLOB",    /* internal */],
             ["TYPE_TEXT",    /* internal */  "BINARY", "CHARACTER_SET", "COLLATE"], ["TYPE_TEXT"],
             
-            ["KW_ENUM",     this.storeType, "LEFT_PARAN", "ENUM_STRING_LIST", "RIGHT_PARAN"],
+            ["RW_ENUM",     this.storeType, "LEFT_PARAN", "ENUM_STRING_LIST", "RIGHT_PARAN"],
             ["RW_SET",      this.storeType, "LEFT_PARAN", "SET_STRING_LIST", "RIGHT_PARAN"],
             ["RW_JSON",     this.storeType])
 
@@ -252,11 +309,12 @@ export default class MySqlGrammar extends Grammar {
             ["LAMBDA"])
 
         this.add("CHARACTER_SET",
-            ["RW_CHARACTER", "RW_SET", "IDENTIFER", (value) => { this.currentType.type.characterSet = value }],
-            ["LAMBDA"],
-            ["RW_COLLATE", "IDENTIFER", (value) => { this.currentType.type.collate = value }])
+            ["RW_CHARACTER", "RW_SET", "IDENTIFIER", (value) => { this.currentType.type.characterSet = value }],
+            ["LAMBDA"])
 
-        this.add("COLLATE", ["LAMBDA"])
+        this.add("COLLATE",
+            ["RW_COLLATE", "IDENTIFIER", (value) => { this.currentType.type.collate = value }],
+            ["LAMBDA"])
 
         this.add("TYPE_INT",
             ["RW_TINYINT",  this.storeType],
@@ -311,20 +369,73 @@ export default class MySqlGrammar extends Grammar {
             ["LAMBDA"])
 
         this.add("NULL_TYPE",
-            ["RW_NOT", "RW_NULL"],
-            ["RW_NULL"],
-            ["LAMBDA"])
+            ["RW_NOT", "RW_NULL",   this.storeNullable(false)],
+            ["RW_NULL",             this.storeNullable(true)],
+            ["LAMBDA",              this.storeNullable(true)])
 
         this.add("DEFAULT_VALUE",
-            ["RW_DEFAULT", "EXPRESSION"],
+            ["RW_DEFAULT", "VALUE", this.storeDefault],
             ["LAMBDA"])
 
-        this.add("EXPRESSION",
-            ["RW_NULL"])
+        this.add("VALUE",
+            ["STRING",  this.pushValueUp],
+            ["INTEGER", this.pushValueUp],
+            ["FLOAT",   this.pushValueUp],
+            ["RW_NULL", this.pushValueUp])
 
-        this.add("TABLE_OPTIONS",
+        this.add("TABLE_OPTIONS_LIST",
+            ["TABLE_OPTION", "TABLE_OPTIONS_LIST"],
             ["LAMBDA"])
-        this.add("PARTITION_OPTIONS",
+        // this.add("TABLE_OPTIONS_TAIL",
+        //     ["TABLE_OPTION", "TABLE_OPTIONS_TAIL"]
+        //     ["LAMBDA"])
+        this.add("TABLE_OPTION",
+            ["RW_ENGINE", "OPTIONAL_EQUALS", "IDENTIFIER"],
+            ["RW_AUTO_INCREMENT", "OPTIONAL_EQUALS", "INTEGER"],
+            ["RW_AVG_ROW_LENGTH", "OPTIONAL_EQUALS", "INTEGER"],
+            ["RW_DEFAULT", "RW_CHARACTER", "RW_SET", "OPTIONAL_EQUALS", "IDENTIFIER"],
+            ["RW_DEFAULT", "RW_CHARSET", "OPTIONAL_EQUALS", "IDENTIFIER"],
+            ["RW_CHARACTER", "RW_SET", "OPTIONAL_EQUALS", "IDENTIFIER"],
+            ["RW_CHECKSUM", "OPTIONAL_EQUALS", "INTEGER"],
+            ["RW_DEFAULT", "RW_COLLATE", "OPTIONAL_EQUALS", "IDENTIFIER"],
+            ["RW_COMMENT", "RW_COLLATE", "OPTIONAL_EQUALS", "STRING"],
+            ["RW_COMPRESSION", "OPTIONAL_EQUALS", "COMPRESSION_TYPE"],
+            ["RW_CONNECTION", "OPTIONAL_EQUALS", "COMPRESSION_TYPE"],
+            ["RW_DATA", "RW_DIRECTORY", "OPTIONAL_EQUALS", "STRING"],
+            ["RW_DELTA_KEY_WRITE", "OPTIONAL_EQUALS", "INTEGER"],
+            ["RW_ENCRYPTION", "OPTIONAL_EQUALS", "STRING"],
+            ["RW_INDEX", "RW_DIRECTORY", "OPTIONAL_EQUALS", "STRING"],
+            ["RW_INSERT_METHOD", "OPTIONAL_EQUALS", "IDENTIFIER"],
+            ["RW_KEY_BLOCK_SIZE", "OPTIONAL_EQUALS", "INTEGER"],
+            ["RW_MAX_ROWS", "OPTIONAL_EQUALS", "INTEGER"],
+            ["RW_MIN_ROWS", "OPTIONAL_EQUALS", "INTEGER"],
+            ["RW_PACK_KEYS", "OPTIONAL_EQUALS", "INTEGER_OR_IDENTIFIER"],
+            ["RW_PASSWORD", "OPTIONAL_EQUALS", "STRING"],
+            ["RW_ROW_FORMAT", "OPTIONAL_EQUALS", "IDENTIFIER"],
+            ["RW_STATS_AUTO_RECALC", "OPTIONAL_EQUALS", "INTEGER_OR_IDENTIFIER"],
+            ["RW_STATS_PERSISTENT", "OPTIONAL_EQUALS", "INTEGER_OR_IDENTIFIER"],
+            ["RW_STATS_SAMPLE_PAGES", "OPTIONAL_EQUALS", "INTEGER"],
+            ["RW_TABLESPACE", "IDENTIFIER", "TABLESPACE_OPTIONS"],
+            ["RW_UNION", "OPTIONAL_EQUALS", "COLUMN_LIST"])
+        
+        this.add("TABLESPACE_OPTIONS",
+            ["RW_STORAGE", "TABLESPACE_STORAGE_TYPE"],
+            ["LAMBDA"])
+        
+        this.add("TABLESPACE_STORAGE_TYPE",
+            ["RW_DISK"],
+            ["RW_MEMORY"],
+            ["RW_DEFAULT"])
+
+        this.add("INTEGER_OR_IDENTIFIER",
+            ["INTEGER"],
+            ["RW_DEFAULT"])
+
+        this.add("OPTIONAL_EQUALS",
+            ["EQUALS"],
+            ["LAMBDA"])
+
+        this.add("PARTITION_OPTIONS_LIST",
             ["LAMBDA"])
 
         this.add("TABLE_TYPE",
