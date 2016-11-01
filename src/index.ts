@@ -8,9 +8,3 @@ import MySqlTranslator from './translator/mysql/translator'
 export function translateMySql(filename: string) {
     return new MySqlTranslator().parse(filename)
 }
-
-function main() {
-    eyes.inspect(translateMySql('./sample/test.mysql'))
-}
-
-main()
