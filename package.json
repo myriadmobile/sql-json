@@ -1,10 +1,11 @@
 {
     "name": "sql-json",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "SQL/JSON Schema translation",
     "main": "src/index.js",
     "author": "Austin Hanson",
     "license": "MIT",
+    "repository": "https://github.com/myriadmobile/sql-json",
     "dependencies": {
         "commander": "^2.9.0",
         "sif": "https://github.com/berdon/sif.git",
