@@ -1,20 +1,21 @@
 {
-  "name": "sql-json",
-  "version": "0.0.1",
-  "description": "SQL/JSON Schema translation",
-  "main": "src/index.js",
-  "author": "Austin Hanson",
-  "license": "MIT",
-  "dependencies": {
-    "commander": "^2.9.0",
-    "sif": "https://github.com/berdon/sif.git",
-    "tokenizer": "^1.1.2"
-  },
-  "devDependencies": {
-    "eyes": "^0.1.8",
-    "typings": "^1.5.0"
-  },
-  "scripts": {
-    "build": "tsc -p ."
-  }
+    "name": "sql-json",
+    "version": "0.0.1",
+    "description": "SQL/JSON Schema translation",
+    "main": "src/index.js",
+    "author": "Austin Hanson",
+    "license": "MIT",
+    "dependencies": {
+        "commander": "^2.9.0",
+        "sif": "https://github.com/berdon/sif.git",
+        "tokenizer": "^1.1.2"
+    },
+    "devDependencies": {
+        "eyes": "^0.1.8",
+        "typings": "^1.5.0"
+    },
+    "scripts": {
+        "build": "tsc -p ."
+    },
+    "types": "./typings/export/index.d.ts"
 }

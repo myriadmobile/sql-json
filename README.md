@@ -3,8 +3,12 @@ SQL/JSON Schema translation
 
 Provides utilities for converting between SQL schema and [JSON schema](http://json-schema.org/).
 
-## SQL
+## SQL Support
 * Loose support for MySQL create statements right now
+
+## Example
+```bash
+```
 
 ## TODO
 * Complete MySQL CREATE parsing
