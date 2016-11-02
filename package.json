@@ -17,7 +17,5 @@
     "scripts": {
         "build": "tsc -p ."
     },
-    "typings": [
-      "./typings/export/index.d.ts"
-  ]
+    "types": "./typings/export/index.d.ts"
 }
